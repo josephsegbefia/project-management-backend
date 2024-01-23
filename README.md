@@ -1,4 +1,4 @@
-### API Documentation -- 😎
+### API Documentation -- 😎😎😎
 
 We will start our project by first documenting all of the routes and data models for our API. Following best practices we will use _verbs_ to specify the type of operation being done and _nouns_ when naming endpoints.
 
