@@ -83,21 +83,20 @@ router.put("/:user/projects/:projectId", (req, res, next) => {
 
 // DELETE  /api/projects/:projectId  -  Deletes a specific project by id
 router.delete("/projects/:projectId", async (req, res, next) => {
-  const { projectId } = req.params;
-
-  if (!mongoose.Types.ObjectId.isValid(projectId)) {
-    res.status(400).json({ message: "Specified id is not valid" });
-    return;
-  }
-
-
   try {
-    const deletedProject = await Project.findByIdAndDelete({_id: projectId })
+    const { projectId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+      res.status(400).json({ message: "Specified id is not valid" });
+      return;
+    }
+
+    const deletedProject = await Project.findByIdAndDelete(projectId)
     console.log("Project=====>", deletedProject)
 
-    // await User.findByIdAndUpdate(deletedProject.user, {
-    //   $pull: { projects: deletedProject._id}
-    // })
+    await User.findByIdAndUpdate(deletedProject.user, {
+      $pull: { projects: deletedProject._id}
+    })
 
     res.json({ message: "Project deleted successfully" });
   }catch(error){
