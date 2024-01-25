@@ -4,39 +4,67 @@ const mongoose = require("mongoose");
 
 const Project = require("../models/Project.model");
 const Task = require("../models/Task.model");
+const User = require("../models/User.model")
 
 //  POST /api/projects  -  Creates a new project
 router.post("/projects", (req, res, next) => {
-  const { title, description } = req.body;
+  const { user, title, description } = req.body;
 
-  Project.create({ title, description, tasks: [] })
-    .then((response) => res.json(response))
-    .catch((err) => res.json(err));
+  Project.create({ user, title, description, tasks: [] })
+  .then((project) => {
+    return User.findByIdAndUpdate(user._id, {
+      $push: { projects: project._id }
+    }).then(() => {
+      res.status(200).json({ message: `Project created!`, project: project})
+    })
+  }).catch((error) => {
+    console.log(error);
+    res.status(500).json({ message: "Internal Server Error" })
+  })
 });
 
-//  GET /api/projects -  Retrieves all of the projects
-router.get("/projects", (req, res, next) => {
-  Project.find()
-    .populate("tasks")
-    .then((allProjects) => res.json(allProjects))
-    .catch((err) => res.json(err));
+//  GET /api/projects -  Retrieves all of a users projects
+router.get("/:user/projects", (req, res, next) => {
+  const { user } = req.params;
+  Project.find({ user })
+    .then((projects) => {
+      res.status(200).json(projects);
+    })
+    .catch((error) => {
+      console.log(error);
+      res.status(500).json({ message: "Internal Server Error"});
+    })
 });
 
 //  GET /api/projects/:projectId -  Retrieves a specific project by id
-router.get("/projects/:projectId", (req, res, next) => {
-  const { projectId } = req.params;
+router.get("/:user/projects/:projectId", (req, res, next) => {
+  const { user, projectId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(projectId)) {
     res.status(400).json({ message: "Specified id is not valid" });
     return;
   }
 
+  if(!mongoose.Types.ObjectId.isValid(user)){
+    res.status(400).json({ message: "Specified user is not valid" });
+    return;
+  }
+
   // Each Project document has `tasks` array holding `_id`s of Task documents
   // We use .populate() method to get swap the `_id`s for the actual Task documents
-  Project.findById(projectId)
-    .populate("tasks")
-    .then((project) => res.status(200).json(project))
-    .catch((error) => res.json(error));
+  // Project.findById(projectId)
+  //   .populate("tasks")
+  //   .then((project) => res.status(200).json(project))
+  //   .catch((error) => res.json(error));
+
+  Project.findOne({ _id: projectId, user })
+    .then((project) => {
+      res.status(200).json(project)
+    })
+    .catch((error) => {
+      console.log(error);
+      res.status(500).json({ message: "Internal Server Error" });
+    })
 });
 
 // PUT  /api/projects/:projectId  -  Updates a specific project by id
@@ -44,9 +72,11 @@ router.put("/projects/:projectId", (req, res, next) => {
   const { projectId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(projectId)) {
-    res.status(400).json({ message: "Specified id is not valid" });
+    res.status(400).json({ message: "Specified project id is not valid" });
     return;
   }
+
+
 
   Project.findByIdAndUpdate(projectId, req.body, { new: true })
     .then((updatedProject) => res.json(updatedProject))
