@@ -12,7 +12,7 @@ router.post("/projects", (req, res, next) => {
 
   Project.create({ user, title, description, tasks: [] })
   .then((project) => {
-    return User.findByIdAndUpdate(user._id, {
+    return User.findOneAndUpdate({ _id: user }, {
       $push: { projects: project._id }
     }).then(() => {
       res.status(200).json({ message: `Project created!`, project: project})
@@ -61,7 +61,7 @@ router.get("/:user/projects/:projectId", (req, res, next) => {
 });
 
 // PUT  /api/projects/:projectId  -  Updates a specific project by id
-router.put("/:user/projects/:projectId/edit", (req, res, next) => {
+router.put("/:user/projects/:projectId", (req, res, next) => {
   const { user, projectId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(projectId)) {
@@ -82,7 +82,7 @@ router.put("/:user/projects/:projectId/edit", (req, res, next) => {
 });
 
 // DELETE  /api/projects/:projectId  -  Deletes a specific project by id
-router.delete("/projects/:projectId", (req, res, next) => {
+router.delete("/projects/:projectId", async (req, res, next) => {
   const { projectId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(projectId)) {
@@ -90,13 +90,34 @@ router.delete("/projects/:projectId", (req, res, next) => {
     return;
   }
 
-  Project.findByIdAndRemove(projectId)
-    .then(() =>
-      res.json({
-        message: `Project with ${projectId} is removed successfully.`,
-      })
-    )
-    .catch((error) => res.json(error));
+
+  try {
+    const deletedProject = await Project.findByIdAndDelete({_id: projectId })
+    console.log("Project=====>", deletedProject)
+
+    // await User.findByIdAndUpdate(deletedProject.user, {
+    //   $pull: { projects: deletedProject._id}
+    // })
+
+    res.json({ message: "Project deleted successfully" });
+  }catch(error){
+    console.log(error);
+  }
+
+  // Project.findOneAndRemove({ _id:projectId, user: user })
+  //   .then((project) => {
+  //     console.log("Project=====>",project);
+  //     return User.findOneAndUpdate({ _id: user }, {
+  //       $pull: { projects: project._id }
+  //     })
+  //     .then(() => {
+  //       res.status(200).json({ message: "Project deleted" });
+  //     })
+  //   })
+  //   .catch((error) => {
+  //     console.log(error);
+  //     res.status(500).json({ message: "Internal Server Error"});
+  //   })
 });
 
 module.exports = router;
